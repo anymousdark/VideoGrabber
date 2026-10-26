@@ -1,13 +1,8 @@
 # Dependências do VideoGrabber
 # feito por anymousdark
 
-opencv-python>=4.9.0
-mss>=9.0.1
-numpy>=1.26.0
-PyAudio>=0.2.14
-keyboard>=0.13.5
-pygetwindow>=0.0.9
-Pillow>=10.2.0
-
-# Build do executável (opcional)
-pyinstaller>=6.3.0
+yt-dlp>=2024.8.6
+imageio-ffmpeg>=0.5.1
+customtkinter>=6.0.0
+Pillow>=10.0
+pyinstaller>=6.6

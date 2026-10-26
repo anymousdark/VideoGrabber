@@ -1,62 +1,104 @@
 #!/usr/bin/env python3
+# -*- coding: utf-8 -*-
+"""Gera o VideoGrabber.exe com PyInstaller, embutindo o FFmpeg.
+
+feito por anymousdark
 """
-Gera o executável do VideoGrabber com PyInstaller.
-Uso: python build_exe.py
-Resultado: dist/VideoGrabber.exe
-"""
+
+from __future__ import annotations
 
 import os
 import shutil
 import subprocess
 import sys
 
+HERE = os.path.dirname(os.path.abspath(__file__))
+ENTRY = os.path.join(HERE, "video_grabber.py")
+NAME = "VideoGrabber"
+VERSION = "2.0.0"
 
-def main():
-    root = os.path.dirname(os.path.abspath(__file__))
-    os.chdir(root)
 
-    icon = os.path.join(root, "assets", "icon.ico")
-    icon_args = ["--icon", icon] if os.path.exists(icon) else []
+def run(cmd: list[str]) -> None:
+    print(">", " ".join(cmd))
+    subprocess.check_call(cmd, cwd=HERE)
 
-    cmd = [
+
+def find_ffmpeg() -> str:
+    env = (os.environ.get("FFMPEG_EXE") or "").strip('"')
+    if env and os.path.isfile(env):
+        return env
+
+    which = shutil.which("ffmpeg")
+    if which:
+        return which
+
+    try:
+        import imageio_ffmpeg
+
+        path = imageio_ffmpeg.get_ffmpeg_exe()
+        if os.path.isfile(path):
+            return path
+    except Exception:
+        pass
+
+    raise SystemExit(
+        "ffmpeg não encontrado. Instale com: pip install imageio-ffmpeg\n"
+        "ou defina FFMPEG_EXE=C:\\caminho\\ffmpeg.exe"
+    )
+
+
+def main() -> int:
+    print("=" * 64)
+    print(f"  {NAME} v{VERSION} — build do executável")
+    print("  feito por anymousdark")
+    print("=" * 64)
+
+    run([sys.executable, "-m", "pip", "install", "-r", "requirements.txt"])
+
+    ffmpeg = find_ffmpeg()
+    print(f"ffmpeg embutido: {ffmpeg}")
+
+    sep = ";" if os.name == "nt" else ":"
+    args = [
         sys.executable, "-m", "PyInstaller",
         "--noconfirm",
         "--clean",
         "--onefile",
         "--windowed",
-        "--name", "VideoGrabber",
-        "--collect-all", "mss",
-        "--hidden-import", "pyaudio",
-        "--hidden-import", "keyboard",
-        "--hidden-import", "pygetwindow",
+        "--name", NAME,
+        "--collect-submodules", "yt_dlp",
+        "--collect-submodules", "imageio_ffmpeg",
+        "--collect-all", "customtkinter",
+        "--hidden-import", "imageio_ffmpeg",
+        "--hidden-import", "app_ui",
         "--hidden-import", "PIL._tkinter_finder",
-        *icon_args,
-        "main.py",
+        "--add-binary", f"{ffmpeg}{sep}.",
     ]
 
-    print("=" * 60)
-    print("  VideoGrabber — build do executável")
-    print("  feito por anymousdark")
-    print("=" * 60)
-    print("Comando:", " ".join(cmd))
-    print()
+    icon = os.path.join(HERE, "assets", "icon.ico")
+    if os.path.isfile(icon):
+        args += ["--icon", icon, "--add-data", f"{icon}{sep}."]
 
-    subprocess.check_call(cmd)
+    icon_png = os.path.join(HERE, "assets", "icon.png")
+    if os.path.isfile(icon_png):
+        args += ["--add-data", f"{icon_png}{sep}."]
 
-    exe = os.path.join(root, "dist", "VideoGrabber.exe")
-    release_dir = os.path.join(root, "release")
-    os.makedirs(release_dir, exist_ok=True)
+    args.append(ENTRY)
+    run(args)
 
-    if os.path.exists(exe):
-        target = os.path.join(release_dir, "VideoGrabber.exe")
+    exe = os.path.join(HERE, "dist", f"{NAME}.exe")
+    if os.path.isfile(exe):
+        release_dir = os.path.join(HERE, "release")
+        os.makedirs(release_dir, exist_ok=True)
+        target = os.path.join(release_dir, f"{NAME}.exe")
         shutil.copy2(exe, target)
-        size_mb = os.path.getsize(target) / (1024 * 1024)
-        print()
-        print(f"OK! Executável gerado: {target} ({size_mb:.1f} MB)")
-    else:
-        print("ERRO: dist/VideoGrabber.exe não foi encontrado.")
-        sys.exit(1)
+        size = os.path.getsize(target) / (1024 * 1024)
+        print(f"\nOK: {target}  ({size:.1f} MB)")
+        return 0
+
+    print("\nFalhou: executável não gerado.", file=sys.stderr)
+    return 1
 
 
 if __name__ == "__main__":
-    main()
+    raise SystemExit(main())
