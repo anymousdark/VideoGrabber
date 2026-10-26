@@ -23,6 +23,7 @@ Uso CLI:
 from __future__ import annotations
 
 import argparse
+import glob
 import json
 import mimetypes
 import os
@@ -134,14 +135,22 @@ def parse_languages(text: str) -> list[str]:
 
 def ffmpeg_path() -> str | None:
     """Procura o ffmpeg: bundle do exe -> pasta do app -> PATH -> imageio-ffmpeg."""
-    candidates = []
+    candidates: list[str] = []
+
+    def add_folder(folder: str) -> None:
+        candidates.append(os.path.join(folder, "ffmpeg.exe"))
+        candidates.extend(sorted(glob.glob(os.path.join(folder, "ffmpeg*.exe"))))
+        candidates.extend(sorted(glob.glob(os.path.join(
+            folder, "imageio_ffmpeg", "binaries", "ffmpeg*.exe"
+        ))))
+
     base = getattr(sys, "_MEIPASS", None)
     if base:
-        candidates.append(os.path.join(base, "ffmpeg.exe"))
+        add_folder(base)
     here = os.path.dirname(os.path.abspath(sys.executable if getattr(sys, "frozen", False) else __file__))
-    candidates.append(os.path.join(here, "ffmpeg.exe"))
+    add_folder(here)
 
-    for candidate in candidates:
+    for candidate in dict.fromkeys(candidates):
         if os.path.isfile(candidate):
             return candidate
 

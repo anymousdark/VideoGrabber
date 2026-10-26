@@ -72,7 +72,6 @@ def main() -> int:
         "--hidden-import", "imageio_ffmpeg",
         "--hidden-import", "app_ui",
         "--hidden-import", "PIL._tkinter_finder",
-        "--add-binary", f"{ffmpeg}{sep}.",
     ]
 
     icon = os.path.join(HERE, "assets", "icon.ico")
